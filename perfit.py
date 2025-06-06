@@ -9,14 +9,13 @@ from datetime import datetime
 
 
 class Perfit:
-    def __init__(self, precision=5, badDataScaler=1000):
+    def __init__(self, badDataScaler=1000):
         """
         初始化 Perfit 类。
         :param precision: 打印小数点后几位，默认为 5 位。
         :param badDataScaler: 异常值过滤倍数，默认为 1000 倍中位数。
         """
         self.results = {}  # 存储所有函数的性能数据
-        self.precision = precision  # 小数点后精度
         self.badDataScaler = badDataScaler  # 全局异常值过滤倍数
 
     def __call__(self, func):
@@ -74,7 +73,7 @@ class Perfit:
                 json.dump(data, f, indent=4)
             print(f"Results for {func_name} saved to {filepath}")
 
-    def prints(self, showPlot=False):
+    def prints(self, precision=5, showPlot=False):
         """
         打印所有函数的统计信息，包括平均内存使用。
         """
@@ -99,9 +98,9 @@ class Perfit:
             print("\nPerformance Results:")
             for key, value in analysis.items():
                 if "Memory" in key:
-                    print(f"  {key}: {value:.{self.precision}f} KB")  # 格式化内存为用户定义的小数位数
+                    print(f"  {key}: {value:.{precision}f} KB")  # 格式化内存为用户定义的小数位数
                 else:
-                    print(f"  {key}: {value:.{self.precision}f}")  # 格式化时间为用户定义的小数位数
+                    print(f"  {key}: {value:.{precision}f}")  # 格式化时间为用户定义的小数位数
             print()
             self._to_json()
             if showPlot:

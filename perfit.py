@@ -1,3 +1,33 @@
+# -*- coding: utf-8 -*-
+"""
+Perfit - A lightweight Python performance profiler and visualizer.
+
+Copyright (c) 2025 erichuanp (erichuanp@gmail.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Author: erichuanp
+Email: erichuanp@gmail.com
+Created: 2025-06-06
+"""
+
+
 import time
 import tracemalloc
 import json
@@ -9,39 +39,55 @@ from datetime import datetime
 
 
 class Perfit:
+    """
+    Perfit - A lightweight Python performance profiler and visualizer.
+    This class provides tools to measure the execution time and memory usage of
+    functions, filter outliers, save performance data, and visualize results.
+    
+    Attributes:
+        badDataScaler (float): A multiplier used to filter outliers based on the median.
+        results (dict): A dictionary to store performance data for decorated functions.
+    """
     def __init__(self, badDataScaler=1000):
         """
-        初始化 Perfit 类。
-        :param precision: 打印小数点后几位，默认为 5 位。
-        :param badDataScaler: 异常值过滤倍数，默认为 1000 倍中位数。
+        Initialize the Perfit class.
+
+        Args:
+            badDataScaler (float): Multiplier for filtering outliers. Default is 1000.
         """
-        self.results = {}  # 存储所有函数的性能数据
-        self.badDataScaler = badDataScaler  # 全局异常值过滤倍数
+        self.results = {}  # Store performance data for all functions
+        self.badDataScaler = badDataScaler  # Global multiplier for outlier filtering
 
     def __call__(self, func):
         """
-        装饰器，用于包装函数，记录性能数据。
+        Decorator to wrap a function and record its performance data.
+
+        Args:
+            func (callable): The function to be decorated.
+
+        Returns:
+            callable: The wrapped function with performance tracking.
         """
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # 开始计时和内存跟踪
+            # Start time and memory tracking
             tracemalloc.start()
             start_time = time.perf_counter()
 
-            # 执行函数
+            # Execute the function
             result = func(*args, **kwargs)
 
-            # 停止计时和内存跟踪
+            # Stop time and memory tracking
             end_time = time.perf_counter()
-            current, peak = tracemalloc.get_traced_memory()
+            current, mem_usage = tracemalloc.get_traced_memory()
             tracemalloc.stop()
 
-            # 记录性能数据
+            # Record performance data
             if func.__name__ not in self.results:
                 self.results[func.__name__] = []
             self.results[func.__name__].append({
-                "t": end_time - start_time,
-                "m": peak / 1024  # 转为 KB
+                "t": end_time - start_time,  # Execution time in seconds
+                "m": mem_usage / 1024  # Memory usage in KB
             })
 
             return result
@@ -49,18 +95,23 @@ class Perfit:
 
     def _filter_bad_data(self, values):
         """
-        根据全局 badDataScaler 过滤异常值。
-        :param values: 性能数据列表。
-        :return: 过滤后的性能数据列表。
+        Filter outliers from performance data based on the global badDataScaler.
+
+        Args:
+            values (list): List of performance metrics (e.g., execution times or memory usage).
+
+        Returns:
+            list: Filtered performance data without outliers.
         """
-        median_value = np.median(values)  # 计算中位数
+        median_value = np.median(values)  # Calculate the median value
         return [v for v in values if v <= median_value * self.badDataScaler]
 
     def _to_json(self):
         """
-        保存所有函数的测试结果为 JSON 文件。
+        Save all recorded performance data to JSON files.
+        Each function's data is saved in a separate file named with a timestamp.
         """
-        # 确保 performances 文件夹存在
+        # Ensure the "performances" directory exists
         performances_dir = "performances"
         if not os.path.exists(performances_dir):
             os.makedirs(performances_dir)
@@ -75,14 +126,18 @@ class Perfit:
 
     def prints(self, precision=5, showPlot=False):
         """
-        打印所有函数的统计信息，包括平均内存使用。
+        Print statistical performance data for all recorded functions.
+
+        Args:
+            precision (int): Number of decimal places to display. Default is 5.
+            showPlot (bool): Whether to display performance plots. Default is False.
         """
         for func_name, data in self.results.items():
             print(f"Function: {func_name}")
             times = [entry["t"] for entry in data]
             memories = [entry["m"] for entry in data]
 
-            # 过滤异常值
+            # Filter outliers
             times = self._filter_bad_data(times)
 
             analysis = {
@@ -98,9 +153,9 @@ class Perfit:
             print("\nPerformance Results:")
             for key, value in analysis.items():
                 if "Memory" in key:
-                    print(f"  {key}: {value:.{precision}f} KB")  # 格式化内存为用户定义的小数位数
+                    print(f"  {key}: {value:.{precision}f} KB")  # Format memory values
                 else:
-                    print(f"  {key}: {value:.{precision}f}")  # 格式化时间为用户定义的小数位数
+                    print(f"  {key}: {value:.{precision}f}")  # Format time values
             print()
             self._to_json()
             if showPlot:
@@ -108,24 +163,29 @@ class Perfit:
 
     def plots(self, block=True, showMean=False, showMedian=False):
         """
-        绘制 `performances` 文件夹中最新 7 个文件的性能变化图。
+        Plot performance data from the latest 7 JSON files in the "performances" directory.
+
+        Args:
+            block (bool): Whether to block the execution until the plot window is closed. Default is True.
+            showMean (bool): Whether to display the mean value as a horizontal line. Default is False.
+            showMedian (bool): Whether to display the median value as a horizontal line. Default is False.
         """
-        # 确保 performances 文件夹存在
+        # Ensure the "performances" directory exists
         performances_dir = "performances"
         if not os.path.exists(performances_dir):
             print("No performances directory found.")
             return
 
-        # 获取文件夹中的所有 JSON 文件
+        # Get all JSON files in the directory
         files = [f for f in os.listdir(performances_dir) if f.endswith(".json")]
         if not files:
             print("No performance files found in the directory.")
             return
 
-        # 按修改时间排序，获取最新的 7 个文件
+        # Sort files by modification time and get the latest 7
         files = sorted(files, key=lambda f: os.path.getmtime(os.path.join(performances_dir, f)), reverse=True)[:7]
 
-        # 读取文件内容并解析性能数据
+        # Read and parse performance data
         colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
         plt.figure(figsize=(15, 12))
 
@@ -134,25 +194,25 @@ class Perfit:
             with open(filepath, "r") as f:
                 data = json.load(f)
 
-            # 提取执行时间数据
+            # Extract execution time data
             values = [entry["t"] for entry in data]
-            func_name = os.path.splitext(file)[0]  # 使用文件名作为函数名称
+            func_name = os.path.splitext(file)[0]  # Use the filename as the function name
 
-            # 过滤异常值
+            # Filter outliers
             values = self._filter_bad_data(values)
 
-            # 绘制曲线
+            # Plot the performance data
             plt.plot(values, label=func_name, color=colors[i % len(colors)])
             
-            # 绘制平均值和中位值的横线
+            # Plot mean and median lines if enabled
             if showMean:
                 mean_value = np.mean(values)
-                plt.axhline(mean_value, color=colors[i % len(colors)], linestyle='--', label=f"{func_name} Mean: {mean_value:.{self.precision}f}")
+                plt.axhline(mean_value, color=colors[i % len(colors)], linestyle='--', label=f"{func_name} Mean: {mean_value:.2f}")
             if showMedian:
                 median_value = np.median(values)
-                plt.axhline(median_value, color=colors[i % len(colors)], linestyle=':', label=f"{func_name} Median: {median_value:.{self.precision}f}")
+                plt.axhline(median_value, color=colors[i % len(colors)], linestyle=':', label=f"{func_name} Median: {median_value:.2f}")
 
-        # 设置图表标题和标签
+        # Set chart title and labels
         plt.xlabel("Run Index")
         plt.ylabel("Execution Time (s)")
         plt.title("Execution Time Over Runs (Latest 7 Files)")

@@ -33,30 +33,24 @@ import time
 class Perfit:
     def __getattr__(self, func_name):
         def wrapper(*args, **kwargs):
-            # 支持全局作用域查找
             func = globals()[func_name]
             start = time.perf_counter()
             result = func(*args, **kwargs)
             end = time.perf_counter()
-            print(f"[Perfit] {func_name} 耗时：{end - start:.3f} 秒")
+            print(f"[Perfit] {func_name} Time: {end - start:.3f}s")
             return result
         return wrapper
 
     def __call__(self, func, *args, **kwargs):
-        # 直接传入可调用对象
         start = time.perf_counter()
         result = func(*args, **kwargs)
         end = time.perf_counter()
-        # 尝试获取函数名，如果不可用则用str表示
         func_name = getattr(func, '__name__', str(func))
-        print(f"[Perfit] {func_name} 耗时：{end - start:.3f} 秒")
+        print(f"[Perfit] {func_name} Time: {end - start:.3f}s")
         return result
 
-# 实例化
 perfit = Perfit()
 
-# 用法一：像属性一样
-# result = perfit.transcriber("/home/sniper/whisper_test/1.wav")
-
-# 用法二：直接传对象
-# result = perfit(transcriber, "/home/sniper/whisper_test/1.wav")
+# result = perfit.print("Test")
+# result = perfit(pop, 5)
+# perfit(pop, 5)

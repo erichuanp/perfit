@@ -2,7 +2,7 @@
 """
 Perfit - A lightweight Python timer.
 
-Copyright (c) 2025 erichuanp (erichuanp@gmail.com)
+Copyright (c) 2023 erichuanp (erichuanp@gmail.com)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +24,17 @@ SOFTWARE.
 
 Author: erichuanp
 Email: erichuanp@gmail.com
-Created: 2025-02-07
+Created: 2023-02-07
 """
 
 
 import time
-
+import sys
 class Perfit:
     def __getattr__(self, func_name):
         def wrapper(*args, **kwargs):
-            func = globals()[func_name]
+            caller_globals = sys._getframe(1).f_globals
+            func = caller_globals[func_name]
             start = time.perf_counter()
             result = func(*args, **kwargs)
             end = time.perf_counter()
@@ -49,8 +50,9 @@ class Perfit:
         print(f"[Perfit] {func_name} Time: {end - start:.3f}s")
         return result
 
-perfit = Perfit()
+pf = Perfit()
 
 # result = perfit.print("Test")
 # result = perfit(pop, 5)
 # perfit(pop, 5)
+
